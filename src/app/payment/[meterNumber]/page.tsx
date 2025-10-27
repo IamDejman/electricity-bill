@@ -1,0 +1,222 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { getCustomerByMeterNumber } from '@/lib/mockData';
+import { generateReference, getBankDetails, copyToClipboard } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
+
+export default function PaymentInstructionsPage() {
+  const [customerData, setCustomerData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [viewHistoryLoading, setViewHistoryLoading] = useState(false);
+  
+  const router = useRouter();
+  const params = useParams();
+  const meterNumber = params.meterNumber as string;
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    const customer = getCustomerByMeterNumber(meterNumber);
+    if (customer) {
+      setCustomerData(customer);
+    }
+    setIsLoading(false);
+  }, [meterNumber]);
+
+  const handleCopyAccount = async () => {
+    const bankDetails = getBankDetails();
+    const success = await copyToClipboard(bankDetails.account);
+    if (success) {
+      showToast('Account number copied!');
+    }
+  };
+
+  const handleCopyReference = async () => {
+    if (!customerData) return;
+    const reference = generateReference(customerData.customer.customerName, meterNumber);
+    const success = await copyToClipboard(reference);
+    if (success) {
+      showToast('Reference copied!');
+    }
+  };
+
+  const handleTransfer = () => {
+    setTransferLoading(true);
+    setTimeout(() => {
+      // Generate a new transaction and add it to localStorage
+      const newTransaction = {
+        id: `txn_${Date.now()}`,
+        date: new Date().toISOString(),
+        amount: Math.floor(Math.random() * 9000) + 1000, // Random amount between 1000-10000
+        token: generateToken(),
+        status: 'success' as const
+      };
+      
+      // Get existing transactions and add new one
+      const existingTransactions = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
+      const updatedTransactions = [newTransaction, ...existingTransactions];
+      localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify(updatedTransactions));
+      
+      showToast('Transfer confirmed! Token generated successfully.');
+      router.push(`/transactions/${meterNumber}`);
+    }, 2000);
+  };
+
+  const generateToken = () => {
+    // Generate 20-digit token in format: XXXX-XXXX-XXXX-XXXX-XXXX
+    const digits = '0123456789';
+    let token = '';
+    for (let i = 0; i < 20; i++) {
+      token += digits[Math.floor(Math.random() * digits.length)];
+    }
+    return token.replace(/(.{4})/g, '$1-').slice(0, -1); // Add dashes every 4 digits
+  };
+
+  const handleViewHistory = () => {
+    setViewHistoryLoading(true);
+    setTimeout(() => {
+      router.push(`/transactions/${meterNumber}`);
+    }, 500);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!customerData) {
+    return (
+      <div className="text-center space-y-4">
+        <h1 className="text-xl font-semibold text-gray-900">Meter Not Found</h1>
+        <p className="text-gray-600">The meter number you entered was not found.</p>
+        <Button onClick={() => router.push('/')}>
+          Back to Home
+        </Button>
+      </div>
+    );
+  }
+
+  const bankDetails = getBankDetails();
+  const reference = generateReference(customerData.customer.customerName, meterNumber);
+
+  return (
+    <div className="space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center space-x-3">
+        <Button 
+          variant="outline" 
+          onClick={() => router.push(`/meter/${meterNumber}`)}
+          className="px-3 py-2"
+        >
+          <span className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </span>
+        </Button>
+      </div>
+
+      <Card>
+        <div className="space-y-6">
+          {/* Header Section */}
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-gray-900 text-center">Make Payment</h1>
+            <p className="text-gray-600">
+              Make a transfer to the dedicated bank account reserved for your meter below whenever you need to buy token
+            </p>
+          </div>
+
+          {/* Bank Details Card */}
+          <div className="bg-gray-100 border border-gray-200 rounded-xl p-6 space-y-6">
+            {/* Bank Name, Account Number, and Account Name */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="text-center space-y-4">
+                <h3 className="text-xl font-bold text-gray-900">{bankDetails.bank}</h3>
+                <div className="flex items-center justify-center space-x-3">
+                  <p className="text-2xl font-bold text-gray-900 font-mono tracking-wider">{bankDetails.account}</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleCopyAccount}
+                    className="px-3 py-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Account name</p>
+                  <p className="text-gray-900 font-mono text-sm break-all">{reference}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <Button 
+              className="w-full" 
+              size="lg"
+              loading={transferLoading}
+              onClick={handleTransfer}
+            >
+              I've Made the Transfer
+            </Button>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-amber-800 mb-1">Important Instructions</h4>
+                <ul className="text-sm text-amber-700 space-y-1">
+                  <li>• Minimum amount: ₦1,000</li>
+                  <li>• Token will be sent to your email and phone after payment confirmation</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <Button 
+              variant="secondary" 
+              className="w-full" 
+              size="lg"
+              loading={viewHistoryLoading}
+              onClick={handleViewHistory}
+            >
+              View Transaction History
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Help Section */}
+      <div className="text-center">
+        <p className="text-sm text-gray-600 mb-2">Need help?</p>
+        <a
+          href="https://wa.me/2348089932753"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-green-600 hover:text-green-700 font-medium"
+        >
+          WhatsApp: 08089932753
+        </a>
+      </div>
+    </div>
+  );
+}
