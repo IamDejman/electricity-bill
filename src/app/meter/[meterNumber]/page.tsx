@@ -81,7 +81,7 @@ export default function MeterDetailsPage() {
         <h1 className="text-base font-bold text-gray-900 text-center">Meter Details</h1>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto pb-4">
         <Card>
           <div className="p-3">
             <div className="space-y-2">
@@ -133,39 +133,39 @@ export default function MeterDetailsPage() {
             </div>
           </div>
         </Card>
-      </div>
 
-      <div className="space-y-1 mt-1">
-        <Button 
-          className="w-full" 
-          size="sm"
-          loading={buyTokenLoading}
-          onClick={handleBuyToken}
-        >
-          Buy Token
-        </Button>
-        
-        <Button 
-          variant="secondary" 
-          className="w-full" 
-          size="sm"
-          loading={viewHistoryLoading}
-          onClick={handleViewHistory}
-        >
-          Transaction History
-        </Button>
-      </div>
+        <div className="space-y-1 mt-3">
+          <Button 
+            className="w-full" 
+            size="sm"
+            loading={buyTokenLoading}
+            onClick={handleBuyToken}
+          >
+            Buy Token
+          </Button>
+          
+          <Button 
+            variant="secondary" 
+            className="w-full" 
+            size="sm"
+            loading={viewHistoryLoading}
+            onClick={handleViewHistory}
+          >
+            Transaction History
+          </Button>
+        </div>
 
-      <div className="text-center mt-1">
-        <p className="text-xs text-gray-600 mb-1">Need help?</p>
-        <a
-          href="https://wa.me/2348089932753"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-green-600 hover:text-green-700 font-medium"
-        >
-          WhatsApp: 08089932753
-        </a>
+        <div className="text-center mt-3">
+          <p className="text-xs text-gray-600 mb-1">Need help?</p>
+          <a
+            href="https://wa.me/2348089932753"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-green-600 hover:text-green-700 font-medium"
+          >
+            WhatsApp: 08089932753
+          </a>
+        </div>
       </div>
     </div>
   );

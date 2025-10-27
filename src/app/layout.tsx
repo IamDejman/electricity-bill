@@ -32,7 +32,7 @@ export default function RootLayout({
         <ToastProvider>
           <div className="h-screen flex flex-col">
             <ConditionalHeader />
-            <main className="flex-1 px-4 py-4 overflow-hidden">
+            <main className="flex-1 px-4 py-4 min-h-0">
               <div className="h-full max-w-md mx-auto flex flex-col">
                 {children}
               </div>
