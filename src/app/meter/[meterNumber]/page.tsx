@@ -92,7 +92,7 @@ export default function MeterDetailsPage() {
               
               <div className="flex justify-between items-start">
                 <span className="text-xs font-medium text-gray-600">Account name</span>
-                <p className="text-xs font-semibold text-gray-900 text-right">{customer.customerName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
+                <p className="text-xs font-semibold text-gray-900 text-right">{customer.customerName.toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
               </div>
               
               <div className="flex justify-between items-start">
@@ -114,20 +114,20 @@ export default function MeterDetailsPage() {
               
               <div className="flex justify-between items-start">
                 <span className="text-xs font-medium text-gray-600 flex-shrink-0 mr-2">Address</span>
-                <p className="text-xs font-semibold text-gray-900 text-right break-words">{customer.address.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
+                <p className="text-xs font-semibold text-gray-900 text-right break-words">{customer.address.toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
               </div>
               
               {customer.meterSerial && (
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-medium text-gray-600">Feeder name</span>
-                  <p className="text-xs font-semibold text-gray-900 text-right">{customer.meterSerial.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p className="text-xs font-semibold text-gray-900 text-right">{customer.meterSerial.toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
                 </div>
               )}
               
               {customer.tariffDescription && (
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-medium text-gray-600">Tariff</span>
-                  <p className="text-xs font-semibold text-gray-900 text-right">{customer.tariffDescription.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p className="text-xs font-semibold text-gray-900 text-right">{customer.tariffDescription.toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
                 </div>
               )}
             </div>
