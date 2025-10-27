@@ -19,7 +19,7 @@ export const Input: React.FC<InputProps> = ({
       {label && (
         <label className="block text-sm font-medium text-gray-700">
           {label}
-          {optional && <span className="text-gray-500 ml-1">(optional)</span>}
+          {!optional && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <input

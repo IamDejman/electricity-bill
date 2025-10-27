@@ -57,20 +57,11 @@ export default function Home() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Electricity Token Purchase
-        </h1>
-        <p className="text-gray-600">
-          Enter your prepaid meter details to continue
-        </p>
-      </div> */}
-
+    <div className="h-full flex flex-col justify-center">
       <Card>
         <form onSubmit={handleSubmit} className="space-y-6">
           <Input
-            label="Enter prepaid meter number"
+            label="Enter Meter Number"
             value={meterNumber}
             onChange={(e) => setMeterNumber(e.target.value)}
             error={errors.meterNumber}
@@ -79,7 +70,7 @@ export default function Home() {
           />
           
           <Input
-            label="Email address"
+            label="Email Address"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -89,7 +80,7 @@ export default function Home() {
           />
           
           <Input
-            label="Phone number"
+            label="Phone Number"
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -98,16 +89,15 @@ export default function Home() {
             placeholder="08012345678"
           />
           
-              <Button
-                type="submit"
-                className="w-full"
-                loading={isLoading}
-              >
-                Next
-              </Button>
+          <Button
+            type="submit"
+            className="w-full"
+            loading={isLoading}
+          >
+            Next
+          </Button>
         </form>
       </Card>
-
     </div>
   );
 }

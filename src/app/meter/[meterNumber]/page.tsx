@@ -63,86 +63,82 @@ export default function MeterDetailsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col">
       {/* Back Button */}
-      <div className="flex items-center space-x-3">
-        <Button 
-          variant="outline" 
+      <div className="flex items-center mb-2">
+        <button 
           onClick={() => router.push('/')}
-          className="px-3 py-2"
+          className="flex items-center text-[#006BD5] hover:text-[#0056A3] transition-colors py-1 -ml-2"
         >
-          <span className="flex items-center">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </span>
-        </Button>
+          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span className="text-sm font-medium">Back</span>
+        </button>
       </div>
 
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900 text-center">Meter Details</h1>
+      <div className="mb-2">
+        <h1 className="text-base font-bold text-gray-900 text-center">Meter Details</h1>
       </div>
 
-      <Card>
-        <div className="space-y-4">
-          <div className="border-b border-gray-200 pb-4">
-            <div className="space-y-3">
-              <div>
-                <span className="text-sm font-medium text-gray-500">Meter Number:</span>
-                <p className="text-gray-900 font-mono">{customer.accountNumber}</p>
+      <div className="flex-1 overflow-hidden">
+        <Card>
+          <div className="p-3">
+            <div className="space-y-2">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-medium text-gray-600">Meter number</span>
+                <p className="text-xs font-semibold text-gray-900 text-right">{meterNumber}</p>
               </div>
               
-              <div>
-                <span className="text-sm font-medium text-gray-500">Customer Name:</span>
-                <p className="text-gray-900">{customer.customerName}</p>
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-medium text-gray-600">Account name</span>
+                <p className="text-xs font-semibold text-gray-900 text-right">{customer.customerName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
               </div>
               
-              <div>
-                <span className="text-sm font-medium text-gray-500">Address:</span>
-                <p className="text-gray-900">{customer.address}</p>
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-medium text-gray-600">Account type</span>
+                <p className="text-xs font-semibold text-gray-900 text-right">Prepaid</p>
+              </div>
+              
+              <div className="border-t border-gray-200 pt-2">
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-medium text-gray-600">Outstanding balance</span>
+                  <p className="text-xs font-semibold text-gray-900 text-right">{formatCurrency(customer.arrearsBalance || customer.accountBalance || 0)}</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-medium text-gray-600">Minimum vend amount</span>
+                <p className="text-xs font-semibold text-gray-900 text-right">{formatCurrency(1000)}</p>
+              </div>
+              
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-medium text-gray-600 flex-shrink-0 mr-2">Address</span>
+                <p className="text-xs font-semibold text-gray-900 text-right break-words">{customer.address.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
               </div>
               
               {customer.meterSerial && (
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Meter Serial:</span>
-                  <p className="text-gray-900 font-mono">{customer.meterSerial}</p>
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-medium text-gray-600">Feeder name</span>
+                  <p className="text-xs font-semibold text-gray-900 text-right">{customer.meterSerial.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
                 </div>
               )}
               
               {customer.tariffDescription && (
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Tariff:</span>
-                  <p className="text-gray-900">{customer.tariffDescription}</p>
-                </div>
-              )}
-              
-              {customer.customerType && (
-                <div>
-                  <span className="text-sm font-medium text-gray-500">Customer Type:</span>
-                  <p className="text-gray-900">{customer.customerType}</p>
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-medium text-gray-600">Tariff</span>
+                  <p className="text-xs font-semibold text-gray-900 text-right">{customer.tariffDescription.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
                 </div>
               )}
             </div>
           </div>
-          
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-sm font-medium text-amber-800">Outstanding Debt:</span>
-                <p className="text-lg font-bold text-amber-900">
-                  {formatCurrency(customer.arrearsBalance || customer.accountBalance || 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
-      <div className="space-y-3">
+      <div className="space-y-1 mt-1">
         <Button 
           className="w-full" 
-          size="lg"
+          size="sm"
           loading={buyTokenLoading}
           onClick={handleBuyToken}
         >
@@ -152,21 +148,21 @@ export default function MeterDetailsPage() {
         <Button 
           variant="secondary" 
           className="w-full" 
-          size="lg"
+          size="sm"
           loading={viewHistoryLoading}
           onClick={handleViewHistory}
         >
-          See Receipts and Tokens →
+          Transaction History
         </Button>
       </div>
 
-      <div className="text-center">
-        <p className="text-sm text-gray-600 mb-2">Need help?</p>
+      <div className="text-center mt-1">
+        <p className="text-xs text-gray-600 mb-1">Need help?</p>
         <a
           href="https://wa.me/2348089932753"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-green-600 hover:text-green-700 font-medium"
+          className="text-xs text-green-600 hover:text-green-700 font-medium"
         >
           WhatsApp: 08089932753
         </a>

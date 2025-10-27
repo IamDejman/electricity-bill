@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ConditionalHeader } from "@/components/ConditionalHeader";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,10 +30,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased bg-gray-50`}>
         <ToastProvider>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1 px-4 py-6">
-              <div className="max-w-md mx-auto">
+          <div className="h-screen flex flex-col">
+            <ConditionalHeader />
+            <main className="flex-1 px-4 py-4 overflow-hidden">
+              <div className="h-full max-w-md mx-auto flex flex-col">
                 {children}
               </div>
             </main>
