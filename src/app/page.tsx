@@ -108,9 +108,6 @@ export default function Home() {
         </form>
       </Card>
 
-      <div className="text-center text-sm text-gray-500">
-        <p>Valid meter numbers: 0102759831, 703829680</p>
-      </div>
     </div>
   );
 }
