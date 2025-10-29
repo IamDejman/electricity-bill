@@ -5,11 +5,12 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { getCustomerByMeterNumber } from '@/lib/mockData';
+import { getCustomerByMeterNumber, getTransactionsForMeter } from '@/lib/mockData';
 import { formatCurrency } from '@/lib/utils';
 
 export default function MeterDetailsPage() {
   const [customerData, setCustomerData] = useState<any>(null);
+  const [hasTransactionHistory, setHasTransactionHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [buyTokenLoading, setBuyTokenLoading] = useState(false);
   const [viewHistoryLoading, setViewHistoryLoading] = useState(false);
@@ -22,6 +23,12 @@ export default function MeterDetailsPage() {
     const customer = getCustomerByMeterNumber(meterNumber);
     if (customer) {
       setCustomerData(customer);
+      
+      // Check if meter has transaction history
+      const storedTransactions = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
+      const mockTransactions = getTransactionsForMeter(meterNumber);
+      const allTransactions = storedTransactions.length > 0 ? storedTransactions : mockTransactions;
+      setHasTransactionHistory(allTransactions.length > 0);
     }
     setIsLoading(false);
   }, [meterNumber]);
@@ -51,7 +58,7 @@ export default function MeterDetailsPage() {
   const handleBuyToken = () => {
     setBuyTokenLoading(true);
     setTimeout(() => {
-      router.push(`/payment/${meterNumber}`);
+      router.push(`/amount/${meterNumber}`);
     }, 500);
   };
 
@@ -138,6 +145,7 @@ export default function MeterDetailsPage() {
           <Button 
             className="w-full" 
             size="sm"
+            style={{backgroundColor: '#c03438'}}
             loading={buyTokenLoading}
             onClick={handleBuyToken}
           >
@@ -146,12 +154,14 @@ export default function MeterDetailsPage() {
           
           <Button 
             variant="secondary" 
-            className="w-full" 
+            className={`w-full ${!hasTransactionHistory ? 'opacity-50 cursor-not-allowed' : ''}`}
             size="sm"
+            style={{backgroundColor: hasTransactionHistory ? '#f4b431' : '#f4b431', color: '#373435'}}
             loading={viewHistoryLoading}
-            onClick={handleViewHistory}
+            onClick={hasTransactionHistory ? handleViewHistory : undefined}
+            disabled={!hasTransactionHistory}
           >
-            Transaction History
+            Receipts and Tokens
           </Button>
         </div>
 

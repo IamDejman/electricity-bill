@@ -14,6 +14,8 @@ export default function PaymentInstructionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [transferLoading, setTransferLoading] = useState(false);
   const [viewHistoryLoading, setViewHistoryLoading] = useState(false);
+  const [paymentState, setPaymentState] = useState<'idle' | 'confirming' | 'received' | 'generating' | 'success'>('idle');
+  const [countdown, setCountdown] = useState(0);
   
   const router = useRouter();
   const params = useParams();
@@ -45,25 +47,62 @@ export default function PaymentInstructionsPage() {
     }
   };
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     setTransferLoading(true);
+    setPaymentState('confirming');
+    
+    try {
+      // Simulate payment confirmation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setPaymentState('received');
+      
+      // Simulate payment received
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setPaymentState('generating');
+      
+      // Start countdown for token generation
+      let countdownValue = 10;
+      setCountdown(countdownValue);
+      
+      const countdownInterval = setInterval(() => {
+        countdownValue -= 1;
+        setCountdown(countdownValue);
+        
+        if (countdownValue <= 0) {
+          clearInterval(countdownInterval);
+          generateAndSaveTransaction();
+        }
+      }, 1000);
+      
+    } catch (error) {
+      showToast('Payment failed. Please try again.');
+      setPaymentState('idle');
+      setTransferLoading(false);
+    }
+  };
+
+  const generateAndSaveTransaction = () => {
+    // Generate a new transaction and add it to localStorage
+    const newTransaction = {
+      id: `txn_${Date.now()}`,
+      date: new Date().toISOString(),
+      amount: Math.floor(Math.random() * 9000) + 1000, // Random amount between 1000-10000
+      token: generateToken(),
+      status: 'success' as const,
+      meterNumber
+    };
+    
+    // Get existing transactions and add new one
+    const existingTransactions = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
+    const updatedTransactions = [newTransaction, ...existingTransactions];
+    localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify(updatedTransactions));
+    
+    setPaymentState('success');
+    showToast('Token generated successfully!');
+    
+    // Navigate to success page after a short delay
     setTimeout(() => {
-      // Generate a new transaction and add it to localStorage
-      const newTransaction = {
-        id: `txn_${Date.now()}`,
-        date: new Date().toISOString(),
-        amount: Math.floor(Math.random() * 9000) + 1000, // Random amount between 1000-10000
-        token: generateToken(),
-        status: 'success' as const
-      };
-      
-      // Get existing transactions and add new one
-      const existingTransactions = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
-      const updatedTransactions = [newTransaction, ...existingTransactions];
-      localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify(updatedTransactions));
-      
-      showToast('Transfer confirmed! Token generated successfully.');
-      router.push(`/transactions/${meterNumber}`);
+      router.push(`/success/${meterNumber}`);
     }, 2000);
   };
 
@@ -107,13 +146,74 @@ export default function PaymentInstructionsPage() {
   const bankDetails = getBankDetails();
   const reference = generateReference(customerData.customer.customerName, meterNumber);
 
+  // Payment state UI
+  const renderPaymentState = () => {
+    switch (paymentState) {
+      case 'confirming':
+        return (
+          <Card>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c03438] mx-auto mb-4"></div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Confirming Payment</h3>
+              <p className="text-gray-600">Please wait while we verify your payment...</p>
+            </div>
+          </Card>
+        );
+      
+      case 'received':
+        return (
+          <Card>
+            <div className="text-center py-8">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Payment Received</h3>
+              <p className="text-gray-600">Your payment has been confirmed successfully!</p>
+            </div>
+          </Card>
+        );
+      
+      case 'generating':
+        return (
+          <Card>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c03438] mx-auto mb-4"></div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Generating Token</h3>
+              <p className="text-gray-600 mb-2">You'll receive your token shortly...</p>
+              <div className="text-2xl font-bold text-[#c03438]">{countdown}s</div>
+            </div>
+          </Card>
+        );
+      
+      case 'success':
+        return (
+          <Card>
+            <div className="text-center py-8">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Token Generated!</h3>
+              <p className="text-gray-600">Your token has been generated successfully. Redirecting...</p>
+            </div>
+          </Card>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Back Button */}
       <div className="flex items-center mb-3">
         <button 
           onClick={() => router.push(`/meter/${meterNumber}`)}
-          className="flex items-center text-[#006BD5] hover:text-[#0056A3] transition-colors py-2 -ml-2"
+          className="flex items-center text-[#c03438] hover:text-[#a02a2e] transition-colors py-2 -ml-2"
         >
           <svg className="w-6 h-6 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -123,7 +223,10 @@ export default function PaymentInstructionsPage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <Card>
+        {paymentState !== 'idle' ? (
+          renderPaymentState()
+        ) : (
+          <Card>
           <div className="space-y-6">
             {/* Header Section */}
             <div className="space-y-2">
@@ -146,6 +249,7 @@ export default function PaymentInstructionsPage() {
                       size="sm" 
                       onClick={handleCopyAccount}
                       className="px-2 py-1"
+                      style={{backgroundColor: '#c03438', borderColor: '#c03438', color: 'white'}}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -163,6 +267,7 @@ export default function PaymentInstructionsPage() {
               <Button 
                 className="w-full" 
                 size="lg"
+                style={{backgroundColor: '#c03438'}}
                 loading={transferLoading}
                 onClick={handleTransfer}
               >
@@ -194,14 +299,16 @@ export default function PaymentInstructionsPage() {
                 variant="secondary" 
                 className="w-full" 
                 size="lg"
+                style={{backgroundColor: '#f4b431', color: '#373435'}}
                 loading={viewHistoryLoading}
                 onClick={handleViewHistory}
               >
-                View Transaction History
+                View Receipts and Tokens
               </Button>
             </div>
           </div>
         </Card>
+        )}
       </div>
 
       {/* Help Section */}

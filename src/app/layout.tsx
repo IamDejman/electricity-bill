@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ConditionalHeader } from "@/components/ConditionalHeader";
+import WhatsAppFloating from "@/components/WhatsAppFloating";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -38,6 +39,7 @@ export default function RootLayout({
               </div>
             </main>
             <Footer />
+            <WhatsAppFloating />
           </div>
         </ToastProvider>
       </body>

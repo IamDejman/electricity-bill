@@ -1,23 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { getCustomerByMeterNumber, getTransactionsForMeter } from '@/lib/mockData';
+import { getCustomerByMeterNumber } from '@/lib/mockData';
 import { formatCurrency, formatDate, copyToClipboard } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
-import { Transaction } from '@/lib/mockData';
 import jsPDF from 'jspdf';
 
-export default function TransactionHistoryPage() {
+export default function PaymentSuccessPage() {
   const [customerData, setCustomerData] = useState<any>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transaction, setTransaction] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const meterNumber = params.meterNumber as string;
   const { showToast } = useToast();
 
@@ -25,23 +24,27 @@ export default function TransactionHistoryPage() {
     const customer = getCustomerByMeterNumber(meterNumber);
     if (customer) {
       setCustomerData(customer);
-      // Get transactions from localStorage first, fallback to mock data
+      
+      // Get the latest transaction from localStorage
       const storedTransactions = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
-      const mockTransactions = getTransactionsForMeter(meterNumber);
-      const allTransactions = storedTransactions.length > 0 ? storedTransactions : mockTransactions;
-      setTransactions(allTransactions);
+      if (storedTransactions.length > 0) {
+        setTransaction(storedTransactions[0]); // Most recent transaction
+      }
     }
     setIsLoading(false);
   }, [meterNumber]);
 
-  const handleCopyToken = async (token: string) => {
-    const success = await copyToClipboard(token);
+  const handleCopyToken = async () => {
+    if (!transaction) return;
+    const success = await copyToClipboard(transaction.token);
     if (success) {
       showToast('Token copied!');
     }
   };
 
-  const generateReceiptPDF = (transaction: Transaction) => {
+  const generateReceiptPDF = () => {
+    if (!transaction || !customerData) return;
+    
     const doc = new jsPDF();
     
     // Enhanced receipt design based on IKEDC data structure with IE colors
@@ -139,12 +142,16 @@ export default function TransactionHistoryPage() {
     doc.text('For support: 08089932753 | Email: support@ikedc.com', 105, 280, { align: 'center' });
     doc.text('This is a computer generated receipt', 105, 285, { align: 'center' });
     
-    // Save the PDF with better filename
+    // Save the PDF
     const dateStr = new Date().toISOString().split('T')[0];
     const fileName = `IKEDC_Receipt_${meterNumber}_${dateStr}.pdf`;
     doc.save(fileName);
     
     showToast('Receipt downloaded successfully!');
+  };
+
+  const handleViewHistory = () => {
+    router.push(`/transactions/${meterNumber}`);
   };
 
   if (isLoading) {
@@ -155,11 +162,11 @@ export default function TransactionHistoryPage() {
     );
   }
 
-  if (!customerData) {
+  if (!customerData || !transaction) {
     return (
       <div className="text-center space-y-4">
-        <h1 className="text-xl font-semibold text-gray-900">Meter Not Found</h1>
-        <p className="text-gray-600">The meter number you entered was not found.</p>
+        <h1 className="text-xl font-semibold text-gray-900">Transaction Not Found</h1>
+        <p className="text-gray-600">Unable to load transaction details.</p>
         <Button onClick={() => router.push('/')}>
           Back to Home
         </Button>
@@ -183,95 +190,103 @@ export default function TransactionHistoryPage() {
       </div>
 
       <div className="space-y-2 mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 text-center">Transaction History</h1>
-        <p className="text-gray-600 text-sm">Meter: {meterNumber}</p>
-        <p className="text-gray-600 text-sm">Customer: {customerData.customer.customerName}</p>
+        <h1 className="text-2xl font-bold text-gray-900 text-center">Payment Successful</h1>
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {transactions.length === 0 ? (
-          <Card>
-            <div className="text-center py-8">
-              <div className="text-gray-400 mb-4">
-                <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <Card>
+          <div className="space-y-6">
+            {/* Success Header */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions yet</h3>
-              <p className="text-gray-600 mb-4">Make a payment to get your token.</p>
-              <Link href={`/payment/${meterNumber}`}>
-                <Button>Make Payment</Button>
-              </Link>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Payment Successful</h2>
             </div>
-          </Card>
-        ) : (
-          <div className="h-full overflow-y-auto space-y-3 pr-2">
-            {transactions.map((transaction) => (
-              <Card key={transaction.id}>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {formatCurrency(transaction.amount)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        transaction.status === 'success' 
-                          ? 'bg-green-100 text-green-800' 
-                          : transaction.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {transaction.status}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-gray-200 pt-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Token:</span>
-                        <p className="text-gray-900 font-mono text-sm">
-                          {transaction.token}
-                        </p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          style={{backgroundColor: '#f4b431', color: '#373435', borderColor: '#f4b431'}}
-                          onClick={() => router.push(`/transaction/${transaction.id}`)}
-                        >
-                          View
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          style={{backgroundColor: '#c03438', color: 'white', borderColor: '#c03438'}}
-                          onClick={() => generateReceiptPDF(transaction)}
-                        >
-                          Receipt
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          style={{backgroundColor: '#373435', color: 'white', borderColor: '#373435'}}
-                          onClick={() => handleCopyToken(transaction.token)}
-                        >
-                          Copy Token
-                        </Button>
-                      </div>
-                    </div>
+
+            {/* Transaction Details */}
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600">Token:</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-mono text-gray-900">{transaction.token}</span>
+                    <button
+                      onClick={handleCopyToken}
+                      className="p-1 hover:bg-gray-200 rounded"
+                    >
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
-              </Card>
-            ))}
+                
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Transaction Ref:</span>
+                  <span className="text-sm text-gray-900">{transaction.id}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Transaction Amount:</span>
+                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(transaction.amount)}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Number of Units:</span>
+                  <span className="text-sm text-gray-900">{(transaction.amount / 1000).toFixed(2)}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Account Type:</span>
+                  <span className="text-sm text-gray-900">Prepaid</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Meter Number:</span>
+                  <span className="text-sm text-gray-900">{meterNumber}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Customer Name:</span>
+                  <span className="text-sm text-gray-900">{customerData.customer.customerName}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Address:</span>
+                  <span className="text-sm text-gray-900">{customerData.customer.address}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button
+                onClick={generateReceiptPDF}
+                className="w-full"
+                size="lg"
+                style={{backgroundColor: '#c03438'}}
+              >
+                Download Receipt
+              </Button>
+              
+              <Button
+                variant="secondary"
+                onClick={handleViewHistory}
+                className="w-full"
+                size="lg"
+                style={{backgroundColor: '#f4b431', color: '#373435'}}
+              >
+                Transaction History
+              </Button>
+            </div>
           </div>
-        )}
+        </Card>
       </div>
 
+      {/* Help Section */}
       <div className="text-center mt-4">
         <p className="text-sm text-gray-600 mb-2">Need help?</p>
         <a
@@ -282,6 +297,10 @@ export default function TransactionHistoryPage() {
         >
           WhatsApp: 08089932753
         </a>
+      </div>
+
+      <div className="text-center mt-2">
+        <p className="text-xs text-gray-500">Powered by Tellerpoint</p>
       </div>
     </div>
   );

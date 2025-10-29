@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { validateForm } from '@/lib/validators';
 import { useToast } from '@/components/ui/Toast';
+import ReturningCustomerVerification from '@/components/ReturningCustomerVerification';
 
 export default function Home() {
   const [meterNumber, setMeterNumber] = useState('');
@@ -14,6 +15,7 @@ export default function Home() {
   const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showReturningCustomer, setShowReturningCustomer] = useState(false);
   
   const router = useRouter();
   const { showToast } = useToast();
@@ -28,6 +30,11 @@ export default function Home() {
       if (savedMeter) setMeterNumber(savedMeter);
       if (savedEmail) setEmail(savedEmail);
       if (savedPhone) setPhone(savedPhone);
+      
+      // Check if this is a returning customer
+      if (savedMeter && (savedEmail || savedPhone)) {
+        setShowReturningCustomer(true);
+      }
     }
   }, []);
 
@@ -56,12 +63,49 @@ export default function Home() {
     router.push(`/meter/${meterNumber}`);
   };
 
+  const handleReturningCustomerVerified = (data: { email: string; phone: string }) => {
+    setEmail(data.email);
+    setPhone(data.phone);
+    setShowReturningCustomer(false);
+    // Navigate to meter details page
+    router.push(`/meter/${meterNumber}`);
+  };
+
+  const handleReturningCustomerCancel = () => {
+    setShowReturningCustomer(false);
+  };
+
+  // Show returning customer verification if needed
+  if (showReturningCustomer) {
+    return (
+      <ReturningCustomerVerification
+        meterNumber={meterNumber}
+        onVerified={handleReturningCustomerVerified}
+        onCancel={handleReturningCustomerCancel}
+      />
+    );
+  }
+
   return (
     <div className="h-full flex flex-col justify-center">
+      {/* Header with Logo */}
+      <div className="text-center mb-8">
+        <div className="flex items-center justify-center mb-4">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mr-4" style={{background: 'linear-gradient(135deg, #c03438 0%, #ec292f 100%)'}}>
+            <span className="text-white font-bold text-2xl">IE</span>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">IKEJA ELECTRIC</h1>
+            <p className="text-sm italic text-gray-600">...Bringing energy to life</p>
+          </div>
+        </div>
+        <p className="text-gray-600 text-sm">Recharge light instantly. No extra charges</p>
+      </div>
+
       <Card>
         <form onSubmit={handleSubmit} className="space-y-6">
           <Input
-            label="Enter Meter Number"
+            label="Enter Meter Number *"
             value={meterNumber}
             onChange={(e) => setMeterNumber(e.target.value)}
             error={errors.meterNumber}
@@ -92,12 +136,17 @@ export default function Home() {
           <Button
             type="submit"
             className="w-full"
+            style={{backgroundColor: '#c03438'}}
             loading={isLoading}
           >
             Next
           </Button>
         </form>
       </Card>
+
+      <div className="text-center mt-6">
+        <p className="text-xs text-gray-500">Powered by Tellerpoint</p>
+      </div>
     </div>
   );
 }
