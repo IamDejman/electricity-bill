@@ -28,7 +28,13 @@ export default function PaymentSuccessPage() {
       // Get the latest transaction from localStorage
       const storedTransactions = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
       if (storedTransactions.length > 0) {
-        setTransaction(storedTransactions[0]); // Most recent transaction
+        const override = searchParams.get('status');
+        const latest = storedTransactions[0];
+        if (override === 'pending' || override === 'failed' || override === 'success') {
+          setTransaction({ ...latest, status: override });
+        } else {
+          setTransaction(latest); // Most recent transaction
+        }
       }
     }
     setIsLoading(false);
@@ -174,13 +180,16 @@ export default function PaymentSuccessPage() {
     );
   }
 
+  // Render different states based on last transaction status
+  const status = transaction.status as 'success' | 'pending' | 'failed';
+
   return (
     <div className="h-full flex flex-col">
       {/* Back Button */}
       <div className="flex items-center mb-3">
         <button 
           onClick={() => router.push(`/meter/${meterNumber}`)}
-          className="flex items-center text-[#006BD5] hover:text-[#0056A3] transition-colors py-2 -ml-2"
+          className="flex items-center text-[#c03438] hover:text-[#a02a2e] transition-colors py-2 -ml-2"
         >
           <svg className="w-6 h-6 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -190,21 +199,49 @@ export default function PaymentSuccessPage() {
       </div>
 
       <div className="space-y-2 mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 text-center">Payment Successful</h1>
+        {status === 'success' && (
+          <h1 className="text-2xl font-bold text-gray-900 text-center">Payment Successful</h1>
+        )}
+        {status === 'pending' && (
+          <h1 className="text-2xl font-bold text-gray-900 text-center">Payment Pending</h1>
+        )}
+        {status === 'failed' && (
+          <h1 className="text-2xl font-bold text-gray-900 text-center">Payment Failed</h1>
+        )}
       </div>
 
       <div className="flex-1 overflow-hidden">
         <Card>
           <div className="space-y-6">
-            {/* Success Header */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+            {/* Header by status */}
+            {status === 'success' && (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Payment Successful</h2>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Payment Successful</h2>
-            </div>
+            )}
+            {status === 'pending' && (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c03438] mx-auto mb-4"></div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Awaiting Confirmation</h2>
+                <p className="text-gray-600">Your payment is being verified. Please check back shortly.</p>
+              </div>
+            )}
+            {status === 'failed' && (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Payment Failed</h2>
+                <p className="text-gray-600">We couldn't confirm your payment. Please try again.</p>
+              </div>
+            )}
 
             {/* Transaction Details */}
             <div className="space-y-4">
@@ -212,10 +249,11 @@ export default function PaymentSuccessPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-600">Token:</span>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-mono text-gray-900">{transaction.token}</span>
+                    <span className="text-sm font-mono text-gray-900">{status === 'success' ? transaction.token : status === 'pending' ? 'Generating…' : '—'}</span>
                     <button
                       onClick={handleCopyToken}
                       className="p-1 hover:bg-gray-200 rounded"
+                      disabled={status !== 'success'}
                     >
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -268,8 +306,9 @@ export default function PaymentSuccessPage() {
                 className="w-full"
                 size="lg"
                 style={{backgroundColor: '#c03438'}}
+                disabled={status !== 'success'}
               >
-                Download Receipt
+                {status === 'success' ? 'Download Receipt' : status === 'pending' ? 'Receipt Unavailable (Pending)' : 'Receipt Unavailable (Failed)'}
               </Button>
               
               <Button
@@ -281,6 +320,16 @@ export default function PaymentSuccessPage() {
               >
                 Transaction History
               </Button>
+              {status === 'failed' && (
+                <Button
+                  className="w-full"
+                  size="lg"
+                  style={{backgroundColor: '#c03438'}}
+                  onClick={() => router.push(`/payment/${meterNumber}`)}
+                >
+                  Try Payment Again
+                </Button>
+              )}
             </div>
           </div>
         </Card>

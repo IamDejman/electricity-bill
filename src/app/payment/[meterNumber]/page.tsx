@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -16,9 +16,12 @@ export default function PaymentInstructionsPage() {
   const [viewHistoryLoading, setViewHistoryLoading] = useState(false);
   const [paymentState, setPaymentState] = useState<'idle' | 'confirming' | 'received' | 'generating' | 'success'>('idle');
   const [countdown, setCountdown] = useState(0);
+  const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
+  const [currentAmount, setCurrentAmount] = useState<number | null>(null);
   
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const meterNumber = params.meterNumber as string;
   const { showToast } = useToast();
 
@@ -50,8 +53,34 @@ export default function PaymentInstructionsPage() {
   const handleTransfer = async () => {
     setTransferLoading(true);
     setPaymentState('confirming');
+    // decide an amount for this payment (in a real flow this would come from params)
+    const amountValue = Math.floor(Math.random() * 9000) + 1000;
+    setCurrentAmount(amountValue);
+    // create a pending transaction immediately so it shows in history
+    const pendingId = `txn_${Date.now()}`;
+    const pendingTx = {
+      id: pendingId,
+      date: new Date().toISOString(),
+      amount: amountValue,
+      token: '',
+      status: 'pending' as const,
+      meterNumber
+    };
+    const existing = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
+    localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify([pendingTx, ...existing]));
+    setPendingTransactionId(pendingId);
+    const simulate = searchParams.get('simulate');
     
     try {
+      if (simulate === 'failed') {
+        throw new Error('Simulated failure');
+      }
+      if (simulate === 'pending') {
+        // Leave as pending and stop here
+        showToast('Payment is pending. Please check back shortly.');
+        setTransferLoading(false);
+        return;
+      }
       // Simulate payment confirmation
       await new Promise(resolve => setTimeout(resolve, 2000));
       setPaymentState('received');
@@ -75,6 +104,15 @@ export default function PaymentInstructionsPage() {
       }, 1000);
       
     } catch (error) {
+      // update pending transaction to failed
+      if (pendingTransactionId) {
+        const list = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
+        const idx = list.findIndex((t: any) => t.id === pendingTransactionId);
+        if (idx !== -1) {
+          list[idx] = { ...list[idx], status: 'failed', date: new Date().toISOString() };
+          localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify(list));
+        }
+      }
       showToast('Payment failed. Please try again.');
       setPaymentState('idle');
       setTransferLoading(false);
@@ -82,20 +120,41 @@ export default function PaymentInstructionsPage() {
   };
 
   const generateAndSaveTransaction = () => {
-    // Generate a new transaction and add it to localStorage
-    const newTransaction = {
-      id: `txn_${Date.now()}`,
-      date: new Date().toISOString(),
-      amount: Math.floor(Math.random() * 9000) + 1000, // Random amount between 1000-10000
-      token: generateToken(),
-      status: 'success' as const,
-      meterNumber
-    };
-    
-    // Get existing transactions and add new one
-    const existingTransactions = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
-    const updatedTransactions = [newTransaction, ...existingTransactions];
-    localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify(updatedTransactions));
+    // If we created a pending transaction, update it to success; otherwise add new
+    const token = generateToken();
+    const list = JSON.parse(localStorage.getItem(`transactions_${meterNumber}`) || '[]');
+    if (pendingTransactionId) {
+      const idx = list.findIndex((t: any) => t.id === pendingTransactionId);
+      if (idx !== -1) {
+        list[idx] = {
+          ...list[idx],
+          status: 'success',
+          token,
+          date: new Date().toISOString()
+        };
+        localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify(list));
+      } else {
+        const fallback = {
+          id: `txn_${Date.now()}`,
+          date: new Date().toISOString(),
+          amount: currentAmount ?? Math.floor(Math.random() * 9000) + 1000,
+          token,
+          status: 'success' as const,
+          meterNumber
+        };
+        localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify([fallback, ...list]));
+      }
+    } else {
+      const newTransaction = {
+        id: `txn_${Date.now()}`,
+        date: new Date().toISOString(),
+        amount: currentAmount ?? Math.floor(Math.random() * 9000) + 1000,
+        token,
+        status: 'success' as const,
+        meterNumber
+      };
+      localStorage.setItem(`transactions_${meterNumber}`, JSON.stringify([newTransaction, ...list]));
+    }
     
     setPaymentState('success');
     showToast('Token generated successfully!');
